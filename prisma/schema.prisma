@@ -1,0 +1,154 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model kindergartens {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique
+  address   String?
+  phone     String?
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  teachers Teacher[]
+}
+
+model teachers {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @db.Uuid
+  kindergartenId  String?  @db.Uuid
+  name            String
+  email           String   @unique
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  kindergarten     kindergartens? @relation(fields: [kindergartenId], references: [id])
+  groups           groups[]
+  activities       activities[]
+  savedActivities  saved_activities[]
+  weeklyPlans      weekly_plans[]
+  aiGenerations    ai_generations[]
+
+  @@map("teachers")
+}
+
+model groups {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId String   @db.Uuid
+  name      String
+  ageMin    Int?     @map("age_min")
+  ageMax    Int?     @map("age_max")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  teacher   teachers @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  children  children[]
+  weeklyPlans weekly_plans[]
+
+  @@map("groups")
+}
+
+model children {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId   String   @db.Uuid
+  name      String
+  age       Int
+  gender    String?
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  group           groups @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  observations    child_observations[]
+
+  @@map("children")
+}
+
+model activities {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String?  @db.Uuid
+  name        String
+  category    String
+  duration    Int
+  ageMin      Int?     @map("age_min")
+  ageMax      Int?     @map("age_max")
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  teacher           teachers? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  savedActivities   saved_activities[]
+  weeklyPlans       weekly_plans[]
+  observations      child_observations[]
+
+  @@map("activities")
+}
+
+model saved_activities {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId  String   @db.Uuid
+  activityId String   @db.Uuid
+  deletedAt  DateTime? @map("deleted_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  teacher   teachers   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  activity  activities @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, activityId])
+  @@map("saved_activities")
+}
+
+model weekly_plans {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId  String   @db.Uuid
+  groupId    String   @db.Uuid
+  activityId String?  @db.Uuid
+  dayOfWeek  Int      @map("day_of_week")
+  weekNumber Int?     @map("week_number")
+  deletedAt  DateTime? @map("deleted_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  teacher   teachers    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  group     groups      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  activity  activities? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@map("weekly_plans")
+}
+
+model child_observations {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  childId        String   @db.Uuid
+  activityId     String?  @db.Uuid
+  notes          String?
+  completionDate DateTime? @map("completion_date")
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  child     children    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  activity  activities? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@map("child_observations")
+}
+
+model ai_generations {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId           String   @db.Uuid
+  prompt              String
+  activityName        String?  @map("activity_name")
+  activityDescription String?  @map("activity_description")
+  category            String?
+  ageMin              Int?     @map("age_min")
+  ageMax              Int?     @map("age_max")
+  status              String   @default("pending")
+  deletedAt           DateTime? @map("deleted_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  teacher teachers @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@map("ai_generations")
+}
