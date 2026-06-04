@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { icon: "👥", label: "المجموعات", href: "/groups" },
   { icon: "📊", label: "تقارير الأطفال", href: "/reports" },
   { icon: "⚙️", label: "الإعدادات", href: "/settings" },
+  { icon: "👶", label: "الأطفال", href: "/children" },
 ];
 
 export default function Sidebar() {
